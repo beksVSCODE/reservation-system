@@ -2,7 +2,8 @@ import { useUserBookings, useServices, useSpecialists, useCancelBooking } from '
 import { useAuthStore } from '@/features/auth';
 import { Spinner } from '@/shared/ui/Spinner';
 import { BookingCard } from './BookingCard';
-import { Booking } from '@/shared/types';
+import { RescheduleDialog } from './RescheduleDialog';
+import { Booking, Service, Specialist } from '@/shared/types';
 import { CalendarX } from 'lucide-react';
 import {
   AlertDialog,
@@ -25,6 +26,8 @@ export const UserBookings = () => {
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
 
   const handleCancelClick = (booking: Booking) => {
     setSelectedBooking(booking);
@@ -40,8 +43,8 @@ export const UserBookings = () => {
   };
 
   const handleReschedule = (booking: Booking) => {
-    // TODO: Implement reschedule modal
-    console.log('Reschedule:', booking.id);
+    setRescheduleBooking(booking);
+    setRescheduleDialogOpen(true);
   };
 
   if (bookingsLoading) {
@@ -106,6 +109,17 @@ export const UserBookings = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Reschedule Dialog */}
+      {rescheduleBooking && (
+        <RescheduleDialog
+          open={rescheduleDialogOpen}
+          onOpenChange={setRescheduleDialogOpen}
+          booking={rescheduleBooking}
+          service={getService(rescheduleBooking.serviceId)!}
+          specialist={getSpecialist(rescheduleBooking.specialistId)!}
+        />
       )}
 
       {/* Cancel Confirmation Dialog */}

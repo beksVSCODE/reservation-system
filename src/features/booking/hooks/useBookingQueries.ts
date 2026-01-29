@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/client';
-import { Booking } from '@/shared/types';
+import { Booking, TimeSlot } from '@/shared/types';
 import { useToast } from '@/hooks/use-toast';
+import { generateTimeSlots } from '@/shared/lib/dateUtils';
+import { startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { useMemo } from 'react';
 
 export const useServices = () => {
     return useQuery({
@@ -163,4 +166,65 @@ export const useLockedSlots = (specialistId: string | undefined) => {
         staleTime: 5 * 1000,
         refetchInterval: 10 * 1000,
     });
+};
+
+// Hook to get available time slots for a specialist on a specific date
+export const useAvailableSlots = (
+    specialistId: string,
+    date: Date,
+    serviceDuration: number,
+    bufferBefore: number = 0,
+    bufferAfter: number = 0
+) => {
+    const { data: bookings, isLoading: bookingsLoading } = useSpecialistBookings(
+        specialistId,
+        startOfDay(date),
+        endOfDay(date)
+    );
+
+    const { data: lockedSlots, isLoading: lockedLoading } = useLockedSlots(specialistId);
+
+    const { data: specialists } = useSpecialists();
+
+    const specialist = specialists?.find(s => s.id === specialistId);
+
+    const availableSlots = useMemo(() => {
+        if (!specialist || !bookings) return [];
+
+        const dayOfWeek = date.getDay();
+        const workingHours = specialist.workingHours[dayOfWeek];
+
+        if (!workingHours) return [];
+
+        const dayBookings = bookings.filter(b =>
+            isSameDay(new Date(b.startTime), date) && b.status !== 'cancelled'
+        );
+
+        const slots = generateTimeSlots(
+            date,
+            workingHours.start,
+            workingHours.end,
+            serviceDuration,
+            bufferBefore,
+            bufferAfter,
+            dayBookings,
+            lockedSlots || new Map(),
+            '', // No userId needed for display only
+            specialistId
+        );
+
+        // Return only free slots as TimeSlot objects
+        return slots
+            .filter(slot => slot.status === 'free')
+            .map((slot, index) => ({
+                id: `slot-${date.getTime()}-${index}`,
+                startTime: slot.time,
+                endTime: new Date(slot.time.getTime() + serviceDuration * 60 * 1000),
+            }));
+    }, [specialist, date, serviceDuration, bufferBefore, bufferAfter, bookings, lockedSlots, specialistId]);
+
+    return {
+        data: availableSlots,
+        isLoading: bookingsLoading || lockedLoading,
+    };
 };

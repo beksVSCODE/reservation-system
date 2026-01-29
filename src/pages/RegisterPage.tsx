@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,7 +37,11 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, isLoading, error, clearError } = useAuthStore();
+  
+  // Получаем URL для редиректа после регистрации
+  const from = (location.state as any)?.from?.pathname || '/';
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -58,7 +62,8 @@ const RegisterPage = () => {
         phone: data.phone,
         password: data.password,
       });
-      navigate('/');
+      // Перенаправляем на исходную страницу или на главную
+      navigate(from, { replace: true });
     } catch {
       // Error is handled by the store
     }
@@ -231,7 +236,11 @@ const RegisterPage = () => {
             <CardFooter className="flex flex-col gap-2">
               <p className="text-sm text-muted-foreground text-center">
                 Уже есть аккаунт?{' '}
-                <Link to="/login" className="text-primary hover:underline font-medium">
+                <Link 
+                  to="/login" 
+                  state={{ from: (location.state as any)?.from }}
+                  className="text-primary hover:underline font-medium"
+                >
                   Войдите
                 </Link>
               </p>

@@ -24,6 +24,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Валидация телефона +996 XXX XXX XXX
+const validatePhone = (phone: string): boolean => {
+  const phoneRegex = /^\+996\s?\d{3}\s?\d{3}\s?\d{3}$/;
+  return phoneRegex.test(phone);
+};
+
 interface BookingSummaryProps {
   service: Service;
   specialist: Specialist;
@@ -54,6 +60,7 @@ export const BookingSummary = ({
   
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [errors, setErrors] = useState({ name: '', phone: '' });
 
   // Lock timer countdown
   useEffect(() => {
@@ -79,6 +86,31 @@ export const BookingSummary = ({
 
   const handleInputChange = (field: 'name' | 'phone', value: string) => {
     setLocalUserData((prev) => ({ ...prev, [field]: value }));
+    // Очищаем ошибку при вводе
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Убираем все нецифровые символы
+    let digits = value.replace(/\D/g, '');
+    
+    // Автоматически добавляем +996 если пользователь начинает вводить
+    if (digits.length > 0 && !digits.startsWith('996')) {
+      digits = '996' + digits;
+    }
+    
+    // Форматируем: +996 XXX XXX XXX
+    let formatted = '';
+    if (digits.length >= 3) {
+      formatted = '+996 ' + 
+        digits.slice(3, 6) + 
+        (digits.length > 6 ? ' ' + digits.slice(6, 9) : '') +
+        (digits.length > 9 ? ' ' + digits.slice(9, 12) : '');
+    } else if (digits.length > 0) {
+      formatted = '+' + digits;
+    }
+    
+    handleInputChange('phone', formatted.trim());
   };
 
   const handleConfirm = async () => {
@@ -88,6 +120,29 @@ export const BookingSummary = ({
       toast({
         title: '⚠️ Требуется авторизация',
         description: 'Для бронирования необходимо войти в систему или зарегистрироваться',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Валидация данных
+    const newErrors = { name: '', phone: '' };
+    
+    if (!userData.name || userData.name.trim().length < 2) {
+      newErrors.name = 'Имя должно содержать минимум 2 символа';
+    }
+    
+    if (!userData.phone) {
+      newErrors.phone = 'Телефон обязателен';
+    } else if (!validatePhone(userData.phone)) {
+      newErrors.phone = 'Введите номер в формате +996 XXX XXX XXX';
+    }
+    
+    if (newErrors.name || newErrors.phone) {
+      setErrors(newErrors);
+      toast({
+        title: '❌ Ошибка валидации',
+        description: 'Пожалуйста, заполните все поля корректно',
         variant: 'destructive',
       });
       return;
@@ -217,22 +272,32 @@ export const BookingSummary = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Имя</Label>
+              <Label htmlFor="name">Имя *</Label>
               <Input
                 id="name"
                 value={userData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Введите ваше имя"
+                className={cn(errors.name && 'border-destructive focus-visible:ring-destructive')}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Телефон</Label>
+              <Label htmlFor="phone">Телефон *</Label>
               <Input
                 id="phone"
+                type="tel"
                 value={userData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+7 (___) ___-__-__"
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="+996 XXX XXX XXX"
+                maxLength={17}
+                className={cn(errors.phone && 'border-destructive focus-visible:ring-destructive')}
               />
+              {errors.phone && (
+                <p className="text-sm text-destructive">{errors.phone}</p>
+              )}
             </div>
 
             <Button
