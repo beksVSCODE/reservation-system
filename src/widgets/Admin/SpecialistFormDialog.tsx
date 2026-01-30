@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,21 @@ export const SpecialistFormDialog = ({ open, onOpenChange, specialist }: Special
       6: null,
     },
   });
+
+  // Синхронизация данных формы при изменении specialist prop
+  useEffect(() => {
+    if (specialist) {
+      setFormData({
+        name: specialist.name,
+        specialization: specialist.specialization,
+        avatar: specialist.avatar,
+        serviceIds: specialist.serviceIds,
+        workingHours: specialist.workingHours,
+      });
+    } else {
+      resetForm();
+    }
+  }, [specialist]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

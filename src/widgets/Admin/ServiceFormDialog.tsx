@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,23 @@ export const ServiceFormDialog = ({ open, onOpenChange, service }: ServiceFormDi
     description: service?.description || '',
     icon: service?.icon || '📋',
   });
+
+  // Синхронизация данных формы при изменении service prop
+  useEffect(() => {
+    if (service) {
+      setFormData({
+        name: service.name,
+        duration: service.duration,
+        price: service.price,
+        bufferBefore: service.bufferBefore,
+        bufferAfter: service.bufferAfter,
+        description: service.description,
+        icon: service.icon,
+      });
+    } else {
+      resetForm();
+    }
+  }, [service]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
