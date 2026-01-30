@@ -1,5 +1,6 @@
 import { Service, Specialist, Booking, TimeSlot } from '../types';
 import { mockServices, mockSpecialists, mockBookings } from './mockData';
+import { validateImage } from '../lib/imageUtils';
 
 // Simulate network delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -283,6 +284,14 @@ export const api = {
         await delay(400);
         maybeFailRequest();
 
+        // Валидация изображения (если указано)
+        if (specialist.avatar) {
+            const validation = validateImage(specialist.avatar);
+            if (!validation.valid) {
+                throw new Error(validation.error || 'Неверное изображение');
+            }
+        }
+
         const newSpecialist: Specialist = {
             ...specialist,
             id: `specialist-${Date.now()}`,
@@ -300,6 +309,14 @@ export const api = {
         const index = specialistsStore.findIndex(s => s.id === id);
         if (index === -1) {
             throw new Error('Специалист не найден');
+        }
+
+        // Валидация изображения (если обновляется)
+        if (updates.avatar) {
+            const validation = validateImage(updates.avatar);
+            if (!validation.valid) {
+                throw new Error(validation.error || 'Неверное изображение');
+            }
         }
 
         specialistsStore[index] = { ...specialistsStore[index], ...updates };

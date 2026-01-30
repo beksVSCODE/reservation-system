@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { Specialist, WorkingHours } from '@/shared/types';
 import { useCreateSpecialist, useUpdateSpecialist } from '@/features/admin';
 import { useServices } from '@/features/booking';
@@ -142,16 +143,12 @@ export const SpecialistFormDialog = ({ open, onOpenChange, specialist }: Special
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="avatar">Ссылка на фото</Label>
-              <Input
-                id="avatar"
-                type="url"
-                placeholder="https://..."
-                value={formData.avatar}
-                onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-              />
-            </div>
+            <ImageUpload
+              label="Фотография"
+              value={formData.avatar}
+              onChange={(value) => setFormData({ ...formData, avatar: value })}
+              maxSizeMB={10}
+            />
 
             <div className="grid gap-2">
               <Label>Услуги</Label>
