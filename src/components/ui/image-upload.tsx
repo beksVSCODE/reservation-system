@@ -1,9 +1,19 @@
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { Button } from './button';
 import { Label } from './label';
 import { cn } from '@/lib/utils';
-import { Upload, X, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, AlertCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from './alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './alert-dialog';
 
 interface ImageUploadProps {
   label?: string;
@@ -28,10 +38,18 @@ export const ImageUpload = ({
   required = false,
 }: ImageUploadProps) => {
   const [preview, setPreview] = useState<string>(value || '');
+  const [originalValue, setOriginalValue] = useState<string>(value || '');
   const [error, setError] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Синхронизация preview с внешним value (для редактирования)
+  useEffect(() => {
+    setPreview(value || '');
+    setOriginalValue(value || '');
+  }, [value]);
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
@@ -132,6 +150,7 @@ export const ImageUpload = ({
   };
 
   const handleRemove = () => {
+    setShowDeleteDialog(false);
     setPreview('');
     onChange('');
     setError('');
@@ -144,6 +163,10 @@ export const ImageUpload = ({
     fileInputRef.current?.click();
   };
 
+  // Определяем, было ли изображение изменено
+  const isModified = preview !== originalValue;
+  const hasImage = !!preview;
+
   return (
     <div className={cn('grid gap-2', className)}>
       <Label>
@@ -153,22 +176,55 @@ export const ImageUpload = ({
 
       {/* Preview */}
       {preview ? (
-        <div className="relative rounded-lg border-2 border-border overflow-hidden">
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-48 object-cover"
-          />
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2"
-            onClick={handleRemove}
+        <div className="space-y-3">
+          <div className="relative rounded-lg border-2 border-border overflow-hidden">
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-48 object-cover"
+            />
+            {isModified && (
+              <div className="absolute top-2 left-2">
+                <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                  Изменено
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClick}
+              disabled={isLoading}
+              className="flex-1"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Заменить фотографию
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isLoading}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Удалить
+            </Button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={acceptedFormats.join(',')}
+            onChange={handleFileChange}
+            className="hidden"
             disabled={isLoading}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          />
         </div>
       ) : (
         <div
@@ -222,10 +278,37 @@ export const ImageUpload = ({
 
       {/* File Info */}
       {preview && !error && (
-        <p className="text-xs text-muted-foreground">
-          Изображение загружено успешно
-        </p>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {isModified 
+              ? originalValue 
+                ? 'Новое изображение будет сохранено' 
+                : 'Изображение загружено успешно'
+              : 'Текущее изображение'}
+          </span>
+        </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить фотографию?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить эту фотографию? Это действие можно будет отменить до сохранения формы.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemove}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
